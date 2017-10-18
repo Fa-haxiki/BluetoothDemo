@@ -20,6 +20,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.liulunsheng.bluetoothdemo.bean.DeviceList;
 import com.liulunsheng.bluetoothdemo.bean.ScanedBikeDevice;
 import com.liulunsheng.bluetoothdemo.bean.ScanedLandDevice;
 
@@ -34,6 +35,7 @@ public class DeviceScanActivity extends ListActivity {
     private BluetoothAdapter mBluetoothAdapter;
     private ScanedBikeDevice[] bikeDeviceList;
     private ScanedLandDevice[] landDeviceList;
+    private DeviceList mDeviceList = new DeviceList();
     private int currentCount = 0;
     private int LANDMARK_NUMBER = 20;
     private boolean mScanning;
@@ -369,7 +371,6 @@ public class DeviceScanActivity extends ListActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    String all = byteGetName(scanRecord,0,0,31);
                     String deviceName = byteGetName(scanRecord,2,0,6);
                     String id = byteGetName(scanRecord,19,0,8);
                     int inpark = 0;
@@ -406,31 +407,117 @@ public class DeviceScanActivity extends ListActivity {
         }
     }
 
+    /**
+     * 方法已過期
+     * @param deviceName
+     * @param bluetoothDevice
+     * @param scanRecord
+     * @param RSSI
+     * @param bikeId
+     * @param inPark
+     */
+    @Deprecated
     private void addNewBikeDevice(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI, String bikeId, int inPark){
         ScanedBikeDevice scanedBikeDevice = new ScanedBikeDevice(deviceName, bluetoothDevice, scanRecord, RSSI, bikeId, inPark);
 
         String id = scanedBikeDevice.getBikeId();
         int in_Park = scanedBikeDevice.getInPark();
         if(bikeDeviceList != null){
+
+            ScanedBikeDevice scanedBikeDevice1 = null;
             for(int i = 0; i < currentCount; i++){
-                if(!id.equals(bikeDeviceList[i].getBikeId())){
-                    //车标不存在，加入数组，且改变状态
-                    Log.d("scanedBikeDevice", "----"+ scanedBikeDevice.getBikeId());
-                    bikeDeviceList[i].setInPark(1);
-                    bikeDeviceList[bikeDeviceList.length] = scanedBikeDevice;
-                    currentCount++;
-                    // TODO: 2017/10/17 上报服务器
-                }else if (id.equals(bikeDeviceList[i].getBikeId()) && in_Park == 0){
-                    //车标存在列表中，但状态为0，上报服务器
-                    // TODO: 2017/10/17 上报服务器
+
+                if(id.equals(bikeDeviceList[i].getBikeId())){
+                    scanedBikeDevice1 = bikeDeviceList[i];
+                    break;
+                }else{
+                    continue;
                 }
+
+
+//                if(!id.equals(bikeDeviceList[i].getBikeId())){
+//                    //车标不存在，加入数组，且改变状态
+//                    Log.d("scanedBikeDevice", "----"+ scanedBikeDevice.getBikeId());
+//                    bikeDeviceList[i].setInPark(1);
+//                    bikeDeviceList[bikeDeviceList.length] = scanedBikeDevice;
+//                    currentCount++;
+//                    // TODO: 2017/10/17 上报服务器
+//                }else if (id.equals(bikeDeviceList[i].getBikeId()) && in_Park == 0){
+//                    //车标存在列表中，但状态为0，上报服务器
+//                    // TODO: 2017/10/17 上报服务器
+//                }
             }
+
+            if(scanedBikeDevice1!=null){
+
+                if(scanedBikeDevice1.getInPark() != scanedBikeDevice.getInPark()){
+                    scanedBikeDevice1.setInPark(1);
+                    //上报服务器
+
+                }else{
+                    //如果相等则不做事情
+                }
+            }else{
+                if(currentCount < 20){
+                    bikeDeviceList[currentCount] = scanedBikeDevice;
+                    currentCount++;
+                }else{
+//                    bikeDeviceList[currentLoc] = scanedBikeDevice;
+                    currentCount = 20;
+                }
+
+            }
+
         }else{
             bikeDeviceList = new ScanedBikeDevice[20];
             bikeDeviceList[0] = scanedBikeDevice;
             bikeDeviceList[0].setInPark(1);
             currentCount++;
         }
+    }
+
+    /**
+     * 添加掃描設備並上報服務器
+     * @param deviceName
+     * @param bluetoothDevice
+     * @param scanRecord
+     * @param RSSI
+     * @param bikeId
+     * @param inPark
+     */
+    private void add_device_to_list(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI, String bikeId, int inPark){
+        ScanedBikeDevice scanedBikeDevice = new ScanedBikeDevice(deviceName, bluetoothDevice, scanRecord, RSSI, bikeId, inPark);
+        int device_exist = 0;
+        int device_report = 0;
+//        String id = scanedBikeDevice.getBikeId();
+        for(int i = 0; i < mDeviceList.MAX; i++){
+            if(bikeId.equals(mDeviceList.getScanedBikeDevices()[i].getBikeId())){
+                device_exist = 1;
+                if(mDeviceList.getScanedBikeDevices()[i].getInPark() != inPark){
+                    mDeviceList.getScanedBikeDevices()[i].setInPark(inPark);
+                }else
+                    device_report = 1;
+
+                if(i == (mDeviceList.getLocation_flag()+1)%mDeviceList.MAX){
+                  mDeviceList.setLocation_flag(i);
+                }
+                break;
+            }
+        }
+        if(device_exist == 0){
+            mDeviceList.getScanedBikeDevices()[mDeviceList.getLocation_flag()] = scanedBikeDevice;
+            mDeviceList.setLocation_flag((mDeviceList.getLocation_flag()+1)%mDeviceList.MAX);
+        }
+        if(device_report == 0){
+            if(inPark == 0){
+                //在停车点内
+                Toast.makeText(getApplicationContext(), "******   ******   *****   *** IN ****   ******    ******", Toast.LENGTH_SHORT).show();
+            }else{
+                //不在停车点内
+
+            }
+        }
+
     }
 
     static class ViewHolder {

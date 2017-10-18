@@ -14,7 +14,7 @@ public class ScanedBikeDevice {
     private byte[] mScanRecord;
     private int mRSSI;
     private String mBikeId;
-    private int minPark; // 1:在停车点内0：不在停车点
+    private int minPark = 0; // 1:在停车点内0：不在停车点
 
     public ScanedBikeDevice(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI) {
         mDeviceName = deviceName;
