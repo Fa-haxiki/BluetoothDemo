@@ -213,7 +213,7 @@ public class DeviceScanActivity extends ListActivity {
             final String deviceName = "设备名："+device.getName();
             //final String deviceAddr = "Mac地址："+device.getAddress();
             final String broadcastPack = "广播包："+byteArrayToStr(scanRecord)+ "----Name:" + byteGetName(scanRecord,2,0,6)
-                    +"----Id:"+byteGetName(scanRecord,19,0,8)+"----Power:"+byteGetName(scanRecord,27,0,1)+"----power:"+bytesToInt(scanRecord,27,4)
+                    +"----Id:"+byteGetName(scanRecord,19,0,8)+"----Power:"+byteGetName(scanRecord,27,0,1)
                     +"----Status:"+byteGetName(scanRecord,28,0,2);
             final String rssiString = "RSSI："+String.valueOf(rssi);
 
@@ -338,18 +338,6 @@ public class DeviceScanActivity extends ListActivity {
         String name = new String(newByte1);
         return name;
     }
-
-    public static int bytesToInt(byte[] array, int objectStartNo, int lenth){
-        int value;
-        byte[] newArray = new byte[lenth];
-        System.arraycopy(array,objectStartNo,newArray,0,lenth);
-        value = ((newArray[lenth] & 0xFF)
-                | ((newArray[lenth+1] << 8) & 0xFF00)
-                | ((newArray[lenth+2] << 16) & 0xFF0000)
-                | ((newArray[lenth+3] << 24) & 0xFF000000));
-        return value;
-    }
-
 
 //    static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 //    private static String byteToHex(byte[] bytes){
