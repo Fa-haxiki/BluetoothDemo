@@ -215,8 +215,8 @@ public class DeviceScanActivity extends ListActivity {
             final String deviceName = "设备名："+device.getName();
             //final String deviceAddr = "Mac地址："+device.getAddress();
             final String broadcastPack = "广播包："+byteArrayToStr(scanRecord)+ "----Name:" + byteGetName(scanRecord,2,0,6)
-                    +"----Id:"+byteGetName(scanRecord,19,0,8)+"----Power:"+byteGetName(scanRecord,27,0,1)
-                    +"----Status:"+byteGetName(scanRecord,28,0,2);
+                    +"----Id:"+byteGetName(scanRecord,19,0,8)+"----Power:"+byteGetPower(scanRecord,27,0,1)
+                    +"----Status:"+byteGetName(scanRecord,28,0,1);
             final String rssiString = "RSSI："+String.valueOf(rssi);
 
             if (deviceName != null && deviceName.length() > 0)
@@ -341,6 +341,20 @@ public class DeviceScanActivity extends ListActivity {
         return name;
     }
 
+    public static int byteGetPower(byte[] byteArray, int objStartNo, int startNo, int length){
+        byte[] newByte2 = new byte [length];
+        System.arraycopy(byteArray,objStartNo,newByte2,startNo,length);
+        int mask=0xff;
+        int temp=0;
+        int n=0;
+        for(int i=0;i<newByte2.length;i++){
+            n<<=8;
+            temp=newByte2[i]&mask;
+            n|=temp;
+        }
+        return n;
+    }
+
 //    static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 //    private static String byteToHex(byte[] bytes){
 //        char[] hexChars = new char[bytes.length * 2];
@@ -373,7 +387,7 @@ public class DeviceScanActivity extends ListActivity {
                 public void run() {
                     String deviceName = byteGetName(scanRecord,2,0,6);
                     String id = byteGetName(scanRecord,19,0,8);
-                    int inpark = 0;
+
                     getCurrentTime();
                     //if (mHour == 3 && mMinutes == 0){
                         if(!TextUtils.isEmpty(deviceName)) {
@@ -387,9 +401,11 @@ public class DeviceScanActivity extends ListActivity {
                     //else
                         if(!TextUtils.isEmpty(deviceName)){
                             if(deviceName.startsWith("XKBIKE") && id.startsWith("XK")){
+                                int inpark = byteGetPower(scanRecord,28,0,1);
+                                Log.i("inpark", inpark+"----------------");
                                 mLandListAdapter.addDevice(device,rssi,scanRecord);
                                 mLandListAdapter.notifyDataSetChanged();
-                                addNewBikeDevice(deviceName, device, scanRecord, rssi,id,inpark);
+                                add_device_to_list(deviceName,device,scanRecord,rssi,id,inpark);
                             }
                         }
                 }
@@ -416,65 +432,64 @@ public class DeviceScanActivity extends ListActivity {
      * @param bikeId
      * @param inPark
      */
-    @Deprecated
-    private void addNewBikeDevice(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI, String bikeId, int inPark){
-        ScanedBikeDevice scanedBikeDevice = new ScanedBikeDevice(deviceName, bluetoothDevice, scanRecord, RSSI, bikeId, inPark);
-
-        String id = scanedBikeDevice.getBikeId();
-        int in_Park = scanedBikeDevice.getInPark();
-        if(bikeDeviceList != null){
-
-            ScanedBikeDevice scanedBikeDevice1 = null;
-            for(int i = 0; i < currentCount; i++){
-
-                if(id.equals(bikeDeviceList[i].getBikeId())){
-                    scanedBikeDevice1 = bikeDeviceList[i];
-                    break;
-                }else{
-                    continue;
-                }
-
-
-//                if(!id.equals(bikeDeviceList[i].getBikeId())){
-//                    //车标不存在，加入数组，且改变状态
-//                    Log.d("scanedBikeDevice", "----"+ scanedBikeDevice.getBikeId());
-//                    bikeDeviceList[i].setInPark(1);
-//                    bikeDeviceList[bikeDeviceList.length] = scanedBikeDevice;
-//                    currentCount++;
-//                    // TODO: 2017/10/17 上报服务器
-//                }else if (id.equals(bikeDeviceList[i].getBikeId()) && in_Park == 0){
-//                    //车标存在列表中，但状态为0，上报服务器
-//                    // TODO: 2017/10/17 上报服务器
+//    private void addNewBikeDevice(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI, String bikeId, int inPark){
+//        ScanedBikeDevice scanedBikeDevice = new ScanedBikeDevice(deviceName, bluetoothDevice, scanRecord, RSSI, bikeId, inPark);
+//
+//        String id = scanedBikeDevice.getBikeId();
+//        int in_Park = scanedBikeDevice.getInPark();
+//        if(bikeDeviceList != null){
+//
+//            ScanedBikeDevice scanedBikeDevice1 = null;
+//            for(int i = 0; i < currentCount; i++){
+//
+//                if(id.equals(bikeDeviceList[i].getBikeId())){
+//                    scanedBikeDevice1 = bikeDeviceList[i];
+//                    break;
+//                }else{
+//                    continue;
 //                }
-            }
-
-            if(scanedBikeDevice1!=null){
-
-                if(scanedBikeDevice1.getInPark() != scanedBikeDevice.getInPark()){
-                    scanedBikeDevice1.setInPark(1);
-                    //上报服务器
-
-                }else{
-                    //如果相等则不做事情
-                }
-            }else{
-                if(currentCount < 20){
-                    bikeDeviceList[currentCount] = scanedBikeDevice;
-                    currentCount++;
-                }else{
-//                    bikeDeviceList[currentLoc] = scanedBikeDevice;
-                    currentCount = 20;
-                }
-
-            }
-
-        }else{
-            bikeDeviceList = new ScanedBikeDevice[20];
-            bikeDeviceList[0] = scanedBikeDevice;
-            bikeDeviceList[0].setInPark(1);
-            currentCount++;
-        }
-    }
+//
+//
+////                if(!id.equals(bikeDeviceList[i].getBikeId())){
+////                    //车标不存在，加入数组，且改变状态
+////                    Log.d("scanedBikeDevice", "----"+ scanedBikeDevice.getBikeId());
+////                    bikeDeviceList[i].setInPark(1);
+////                    bikeDeviceList[bikeDeviceList.length] = scanedBikeDevice;
+////                    currentCount++;
+////                    // TODO: 2017/10/17 上报服务器
+////                }else if (id.equals(bikeDeviceList[i].getBikeId()) && in_Park == 0){
+////                    //车标存在列表中，但状态为0，上报服务器
+////                    // TODO: 2017/10/17 上报服务器
+////                }
+//            }
+//
+//            if(scanedBikeDevice1!=null){
+//
+//                if(scanedBikeDevice1.getInPark() != scanedBikeDevice.getInPark()){
+//                    scanedBikeDevice1.setInPark(1);
+//                    //上报服务器
+//
+//                }else{
+//                    //如果相等则不做事情
+//                }
+//            }else{
+//                if(currentCount < 20){
+//                    bikeDeviceList[currentCount] = scanedBikeDevice;
+//                    currentCount++;
+//                }else{
+////                    bikeDeviceList[currentLoc] = scanedBikeDevice;
+//                    currentCount = 20;
+//                }
+//
+//            }
+//
+//        }else{
+//            bikeDeviceList = new ScanedBikeDevice[20];
+//            bikeDeviceList[0] = scanedBikeDevice;
+//            bikeDeviceList[0].setInPark(1);
+//            currentCount++;
+//        }
+//    }
 
     /**
      * 添加掃描設備並上報服務器
@@ -486,11 +501,12 @@ public class DeviceScanActivity extends ListActivity {
      * @param inPark
      */
     private void add_device_to_list(String deviceName, BluetoothDevice bluetoothDevice, byte[] scanRecord, int RSSI, String bikeId, int inPark){
+        Log.i("scan", "inpark:---------------"+inPark);
         ScanedBikeDevice scanedBikeDevice = new ScanedBikeDevice(deviceName, bluetoothDevice, scanRecord, RSSI, bikeId, inPark);
         int device_exist = 0;
         int device_report = 0;
 //        String id = scanedBikeDevice.getBikeId();
-        for(int i = 0; i < mDeviceList.MAX; i++){
+        for(int i = 0; i < mDeviceList.getLocation_flag(); i++){
             if(bikeId.equals(mDeviceList.getScanedBikeDevices()[i].getBikeId())){
                 device_exist = 1;
                 if(mDeviceList.getScanedBikeDevices()[i].getInPark() != inPark){
@@ -509,13 +525,28 @@ public class DeviceScanActivity extends ListActivity {
             mDeviceList.setLocation_flag((mDeviceList.getLocation_flag()+1)%mDeviceList.MAX);
         }
         if(device_report == 0){
-            if(inPark == 0){
-                //在停车点内
-                Toast.makeText(getApplicationContext(), "******   ******   *****   *** IN ****   ******    ******", Toast.LENGTH_SHORT).show();
+            if(inPark > 0){
+                if(inPark <= 60){
+                    Log.i("scan","*****in*****");
+                    //在停车点内
+                    Toast.makeText(getApplicationContext(), "******   ******   *****   *** IN ****   ******    ******", Toast.LENGTH_SHORT).show();
+                }else{
+                    Log.i("scan","-----out-----");
+                    //不在停车点内
+                    Toast.makeText(getApplicationContext(), "------   ------   -----   --- OUT ----   ------    ------", Toast.LENGTH_SHORT).show();
+                }
             }else{
-                //不在停车点内
-
+                Log.i("scan","-----车在移动-----");
             }
+//            if(inPark >= 0 && inPark > 60){
+//                Log.i("scan","*****in*****");
+//                //不在在停车点内
+//                Toast.makeText(getApplicationContext(), "******   ******   *****   *** IN ****   ******    ******", Toast.LENGTH_SHORT).show();
+//            }else if(in){
+//                Log.i("scan","-----out-----");
+//                //不在停车点内
+//                Toast.makeText(getApplicationContext(), "------   ------   -----   --- OUT ----   ------    ------", Toast.LENGTH_SHORT).show();
+//            }
         }
 
     }
